@@ -13,10 +13,10 @@ lidarIsActive = False
 leftDegree = 90
 forwardDegree = 180
 rightDegree = 270
-leftMinDistance = 3000
-rightMinDistance = 3000
-maxNearestDistance = 1000
-maxDistance = 3000
+leftMinDistance = 6000
+rightMinDistance = 6000
+maxNearestDistance = 6000
+maxDistance = 4000
 nearestDistance = maxNearestDistance
 nearestAngle = 0
 minYplus = 0
@@ -25,6 +25,7 @@ degRange = 30
 directionEstimate = 0
 agentX = 0
 agentY = 0
+agentXInt = 0
 
 if lidarShowing:
     os.putenv('SDL_FBDEV', '/dev/fb0')
@@ -150,8 +151,8 @@ def lidarProcessing():
                     scans.append((scan.angle, scan.distance))
             else:
                 i += 1
-                leftMinDistance = 3000
-                rightMinDistance = 3000
+                leftMinDistance = 6000
+                rightMinDistance = 6000
                 nearestDistance = maxNearestDistance
                 nearestAngle = 0
                 minYplus = 1500
@@ -246,13 +247,16 @@ def motorTesting():
     print("Stop")
     
 def movingControl():
-    global directionEstimate, minYplus, minYminus, leftMinDistance, rightMinDistance, nearestDistance, nearestAngle, forwardDegree
+    global directionEstimate, minYplus, minYminus, leftMinDistance, rightMinDistance, nearestDistance, nearestAngle, forwardDegree, agentXInt
     coefDirect = 70/30/1.5#0.001/6 * 30
     coefPosition = 50/1000
     coefNearest = 70/1.5
     maxtu = 30
     minSpeed = 5
-    normalSpeed = 50-(agentX / 1000 * 30)
+    agentXInt += agentX / 1000 * 30
+    if abs(agentXInt) > 20:
+        agentXInt = agentXInt / abs(agentXInt) * 20
+    normalSpeed = 50-(agentX / 1000 * 30) - agentXInt
     setMotorSpeed(leftMotorId, normalSpeed)
     setMotorSpeed(rightMotorId, normalSpeed)
     
@@ -304,3 +308,4 @@ if __name__ == '__main__':     # Program start from here
     except KeyboardInterrupt:
         print('End of programm. Destroying.')
         destroy()
+
