@@ -10,6 +10,7 @@ from numpy import median
 lidarShowing = False
 lidarIsActive = False
 
+
 leftDegree = 90
 forwardDegree = 180
 rightDegree = 270
@@ -136,90 +137,90 @@ def lidarProcessing():
     attemptsCount = 0
     testingMeasurmentsCount = 10
     while attemptsCount < maxAttemptsCount: 
-#         try:
-        lidar.connect('/dev/ttyUSB0', timeout = 3, baudrate = 115200)
-        lidar.set_motor_pwm(500)
-        sleep(0.1)
-        print("Lidar motor started")
-        scan_generator = lidar.start_scan_express(4)
-        print("Lidar scan generator created")
-        scans = []
-        i = 0
-        for _, scan in enumerate(scan_generator()):
-            if not scan.start_flag or len(scans) < 100:
-                if scan.quality != 0:
-                    scans.append((scan.angle, scan.distance))
-            else:
-                i += 1
-                leftMinDistance = 6000
-                rightMinDistance = 6000
-                nearestDistance = maxNearestDistance
-                nearestAngle = 0
-                minYplus = 1500
-                minYminus = -1500
-                scan_data = [0]*360
-                scanStep = 5
-                leftScan = []
-                rightScan = []
-                setsAgg = dataRecognize(scans)
-                agentX = 0
-                agentY = 0                
-                for a in scans:
-                    angle = a[0]
-                    distance = a[1]
-                    scan_data[min([359, floor(angle)])] = distance
-                    y = distance * sin((angle + directionEstimate)*pi/180)
-                    if y > 20:
-                        minYplus = min([minYplus, y])
-                    elif y < -20:
-                        minYminus = max([minYminus, y])
-                    if abs(forwardDegree - angle - directionEstimate) < 2 * degRange and distance < nearestDistance:
-                        nearestDistance = distance
-                        nearestAngle = angle
-                    if abs(leftDegree - angle - directionEstimate) < degRange and leftMinDistance > distance:
-                        leftMinDistance = distance
-                    if abs(rightDegree - angle - directionEstimate) < degRange and rightMinDistance > distance:
-                        rightMinDistance = distance
-                    if leftDegree < angle and angle < (forwardDegree + leftDegree) * 0.5:
-                        if not leftScan or abs(leftScan[-1][0] - angle) > scanStep:
-                            leftScan.append([angle, distance, distance * cos(angle/180*pi), distance * sin(angle/180*pi)])
-                    if (forwardDegree + rightDegree) * 0.5 < angle and angle < rightDegree:
-                        if not rightScan or abs(rightScan[-1][0] - angle) > scanStep:
-                            rightScan.append([angle, distance, distance * cos(angle/180*pi), distance * sin(angle/180*pi)])
-                leftDirEstimate = median([atan2(leftScan[k-1][3] - leftScan[k][3], leftScan[k-1][2] - leftScan[k][2]) for k in range(1, len(leftScan))]) if len(leftScan) >= 2 else 0
-                rightDirEstimate = median([atan2(rightScan[k][3] - rightScan[k-1][3], rightScan[k][2] - rightScan[k-1][2]) for k in range(1, len(rightScan))]) if len(rightScan) >= 2 else 0
-                if len(leftScan) < 2:  
-                    directionEstimate = rightDirEstimate * 180 / pi
-                elif len(rightScan) < 2:
-                    directionEstimate = leftDirEstimate * 180 / pi
+        try:
+            lidar.connect('/dev/ttyUSB0', timeout = 3, baudrate = 115200)
+            lidar.set_motor_pwm(500)
+            sleep(0.1)
+            print("Lidar motor started")
+            scan_generator = lidar.start_scan_express(4)
+            print("Lidar scan generator created")
+            scans = []
+            i = 0
+            for _, scan in enumerate(scan_generator()):
+                if not scan.start_flag or len(scans) < 100:
+                    if scan.quality != 0:
+                        scans.append((scan.angle, scan.distance))
                 else:
-                    directionEstimate = (leftDirEstimate + rightDirEstimate) * 90 / pi
-                for s in setsAgg:
-                    Xa = s[0][1] * cos((s[0][0] + directionEstimate)*pi/180.0)
-                    Ya = s[0][1] * sin((s[0][0] + directionEstimate)*pi/180.0)
-                    Xb = s[1][1] * cos((s[1][0] + directionEstimate)*pi/180.0)
-                    Yb = s[1][1] * sin((s[1][0] + directionEstimate)*pi/180.0)
-                    sqrtLen = (Xa - Xb) ** 2 + (Ya - Yb) ** 2 
-                    if (Xa**2+Ya**2) < 1000**2 and (Xb**2+Yb**2) < 1000**2 and 10**2 <= sqrtLen and sqrtLen <= 69**2:
-                        agentX = (Xa+Xb) * 0.5
-                        agentY = (Ya+Yb) * 0.5
-                if i == testingMeasurmentsCount:
-                    print("Lidar is succesfully initialized and tested")
-                    attemptsCount = 0
-                    lidarIsActive = True
-                if lidarShowing:
-                    print('%d: Got %d measurments; L distance: %f, R distance: %f' % (i, len(scans), leftMinDistance, rightMinDistance))
-                    print([leftDirEstimate * 180 / pi, rightDirEstimate * 180 / pi, directionEstimate, minYplus, minYminus])                        
-                    showLidar(scan_data, setsAgg)
-                scans = []
-            attemptsCount = 0
-#         except:
-#             print("Lidar initialization failed")
-#             lidarIsActive = False
-#             attemptsCount += 1
-#             lidar.stop()
-#             lidar.disconnect()
-#             sleep(0.2)
+                    i += 1
+                    leftMinDistance = 6000
+                    rightMinDistance = 6000
+                    nearestDistance = maxNearestDistance
+                    nearestAngle = 0
+                    minYplus = 1500
+                    minYminus = -1500
+                    scan_data = [0]*360
+                    scanStep = 5
+                    leftScan = []
+                    rightScan = []
+                    setsAgg = dataRecognize(scans)
+                    agentX = 0
+                    agentY = 0                
+                    for a in scans:
+                        angle = a[0]
+                        distance = a[1]
+                        scan_data[min([359, floor(angle)])] = distance
+                        y = distance * sin((angle + directionEstimate)*pi/180)
+                        if y > 20:
+                            minYplus = min([minYplus, y])
+                        elif y < -20:
+                            minYminus = max([minYminus, y])
+                        if abs(forwardDegree - angle - directionEstimate) < 2 * degRange and distance < nearestDistance:
+                            nearestDistance = distance
+                            nearestAngle = angle
+                        if abs(leftDegree - angle - directionEstimate) < degRange and leftMinDistance > distance:
+                            leftMinDistance = distance
+                        if abs(rightDegree - angle - directionEstimate) < degRange and rightMinDistance > distance:
+                            rightMinDistance = distance
+                        if leftDegree < angle and angle < (forwardDegree + leftDegree) * 0.5:
+                            if not leftScan or abs(leftScan[-1][0] - angle) > scanStep:
+                                leftScan.append([angle, distance, distance * cos(angle/180*pi), distance * sin(angle/180*pi)])
+                        if (forwardDegree + rightDegree) * 0.5 < angle and angle < rightDegree:
+                            if not rightScan or abs(rightScan[-1][0] - angle) > scanStep:
+                                rightScan.append([angle, distance, distance * cos(angle/180*pi), distance * sin(angle/180*pi)])
+                    leftDirEstimate = median([atan2(leftScan[k-1][3] - leftScan[k][3], leftScan[k-1][2] - leftScan[k][2]) for k in range(1, len(leftScan))]) if len(leftScan) >= 2 else 0
+                    rightDirEstimate = median([atan2(rightScan[k][3] - rightScan[k-1][3], rightScan[k][2] - rightScan[k-1][2]) for k in range(1, len(rightScan))]) if len(rightScan) >= 2 else 0
+                    if len(leftScan) < 2:  
+                        directionEstimate = rightDirEstimate * 180 / pi
+                    elif len(rightScan) < 2:
+                        directionEstimate = leftDirEstimate * 180 / pi
+                    else:
+                        directionEstimate = (leftDirEstimate + rightDirEstimate) * 90 / pi
+                    for s in setsAgg:
+                        Xa = s[0][1] * cos((s[0][0] + directionEstimate)*pi/180.0)
+                        Ya = s[0][1] * sin((s[0][0] + directionEstimate)*pi/180.0)
+                        Xb = s[1][1] * cos((s[1][0] + directionEstimate)*pi/180.0)
+                        Yb = s[1][1] * sin((s[1][0] + directionEstimate)*pi/180.0)
+                        sqrtLen = (Xa - Xb) ** 2 + (Ya - Yb) ** 2 
+                        if (Xa**2+Ya**2) < 1000**2 and (Xb**2+Yb**2) < 1000**2 and 10**2 <= sqrtLen and sqrtLen <= 69**2:
+                            agentX = (Xa+Xb) * 0.5
+                            agentY = (Ya+Yb) * 0.5
+                    if i == testingMeasurmentsCount:
+                        print("Lidar is succesfully initialized and tested")
+                        attemptsCount = 0
+                        lidarIsActive = True
+                    if lidarShowing:
+                        print('%d: Got %d measurments; L distance: %f, R distance: %f' % (i, len(scans), leftMinDistance, rightMinDistance))
+                        print([leftDirEstimate * 180 / pi, rightDirEstimate * 180 / pi, directionEstimate, minYplus, minYminus])                        
+                        showLidar(scan_data, setsAgg)
+                    scans = []
+                attemptsCount = 0
+        except:
+            print("Lidar initialization failed")
+            lidarIsActive = False
+            attemptsCount += 1
+            lidar.stop()
+            lidar.disconnect()
+            sleep(0.2)
 
 def motorTesting():
     setMotorSpeed(leftMotorId, 100)
@@ -253,9 +254,9 @@ def movingControl():
     coefNearest = 70/1.5
     maxtu = 30
     minSpeed = 5
-    agentXInt += agentX / 1000 * 30
-    if abs(agentXInt) > 20:
-        agentXInt = agentXInt / abs(agentXInt) * 20
+    agentXInt += agentX / 1000 / 100 * 30
+    if abs(agentXInt) > 15:
+        agentXInt = agentXInt / abs(agentXInt) * 15
     normalSpeed = 50-(agentX / 1000 * 30) - agentXInt
     setMotorSpeed(leftMotorId, normalSpeed)
     setMotorSpeed(rightMotorId, normalSpeed)
