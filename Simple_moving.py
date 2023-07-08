@@ -4,6 +4,7 @@ from math import cos, sin, pi, floor, atan2
 import pygame
 import RPi.GPIO as GPIO
 from time import sleep
+import time
 from threading import Thread
 from numpy import median
 
@@ -28,6 +29,7 @@ directionEstimate = 0
 agentX = 0
 agentY = 0
 agentXInt = 0
+log = open("log.txt", "w")
 
 if lidarShowing:
     os.putenv('SDL_FBDEV', '/dev/fb0')
@@ -74,7 +76,7 @@ def sign(arg):
     return 0
 
 def setMotorSpeed(id, speed):
-    decreaseCoef = 0.55
+    decreaseCoef = 0.65
     speed = decreaseCoef * speed
     speed = 0 if speed == 0 else speed / abs(speed) * min([abs(speed), 100])
     sPins[id].ChangeDutyCycle(abs(speed))
@@ -156,7 +158,7 @@ def lidarProcessing():
     attemptsCount = 0
     testingMeasurmentsCount = 10
     while attemptsCount < maxAttemptsCount: 
-#         try:
+        try:
             lidar.connect('/dev/ttyUSB0', timeout = 3, baudrate = 115200)
             lidar.set_motor_pwm(500)
             sleep(0.1)
@@ -225,7 +227,7 @@ def lidarProcessing():
                         directionEstimate = (leftDirEstimate + rightDirEstimate) * 90 / pi
 #                     print([leftDirEstimate * 180 / pi, rightDirEstimate * 180 / pi, directionEstimate])
 #                     directionEstimate = directionEstimate * 0.05 + 0.95 * prevDirectionEstimate
-                    agentMaxDist = 1000
+                    agentMaxDist = 1500
                     for s in setsAgg:
                         Xa = s[0][1] * cos((s[0][0] + directionEstimate)*pi/180.0)
                         Ya = s[0][1] * sin((s[0][0] + directionEstimate)*pi/180.0)
@@ -239,7 +241,7 @@ def lidarProcessing():
                             if mX**2+mY**2 < obstacleDistance**2:
                                 if mY > 20:
                                     if minYplus == 0:
-                                        minYplus = mY
+                                        mccinYplus = mY
                                     else:
                                         minYplus = min([minYplus, mY])
                                 elif mY < -20:
@@ -247,7 +249,7 @@ def lidarProcessing():
                                         maxYminus = mY
                                     else:
                                         maxYminus = max([maxYminus, mY])
-                        if Xa < 500 and Xb < 500 and (Xa**2+Ya**2) < agentMaxDist**2 and (Xb**2+Yb**2) < agentMaxDist**2 and 10**2 <= sqrtLen and sqrtLen <= 69**2 and (agentX + agentY == 0 or ((Xa+Xb) * 0.5-agentXOld)**2+((Ya+Yb) * 0.5-agentYOld)**2<(agentX * 0.5-agentXOld)**2+(agentY * 0.5-agentYOld)**2):
+                        if (Xa**2+Ya**2) < agentMaxDist**2 and (Xb**2+Yb**2) < agentMaxDist**2 and 10**2 <= sqrtLen and sqrtLen <= 69**2 and (agentX + agentY == 0 or ((Xa+Xb) * 0.5-agentXOld)**2+((Ya+Yb) * 0.5-agentYOld)**2<(agentX * 0.5-agentXOld)**2+(agentY * 0.5-agentYOld)**2):
                             agentX = (Xa+Xb) * 0.5
                             agentY = (Ya+Yb) * 0.5
                             if agentY > 0:
@@ -264,13 +266,13 @@ def lidarProcessing():
                         showLidar(scan_data, setsAgg)
                     scans = []
                 attemptsCount = 0
-#         except:
-#             print("Lidar initialization failed")
-#             lidarIsActive = False
-#             attemptsCount += 1
-#             lidar.stop()
-#             lidar.disconnect()
-#             sleep(0.2)
+        except:
+            print("Lidar initialization failed")
+            lidarIsActive = False
+            attemptsCount += 1
+            lidar.stop()
+            lidar.disconnect()
+            sleep(0.2)
 
 def motorTesting():
     setMotorSpeed(leftMotorId, 100)
@@ -331,6 +333,7 @@ def movingControl():
 #        un = 0
     leftMinDistance = min([leftMinDistance, minYplus])
     rightMinDistance = min([rightMinDistance, -maxYminus])
+    log.write(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()) + " L: " + str(int(1000*leftMinDistance)/1000) + " R: " + str(int(1000*rightMinDistance)/1000) + "\n")
     #print([minYplus, maxYminus, nearestPoint[1], leftMinDistance, rightMinDistance])
     #print([leftMinDistance, rightMinDistance])
     #print(directionEstimate)
@@ -377,5 +380,6 @@ if __name__ == '__main__':     # Program start from here
         loop()
     except KeyboardInterrupt:
         print('End of programm. Destroying.')
+        log.close()
         destroy()
 
